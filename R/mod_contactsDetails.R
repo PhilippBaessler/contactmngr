@@ -1,3 +1,11 @@
+#' Title
+#'
+#' @param id
+#'
+#' @rdname mod_contactsDetails
+#'
+#' @keywords internal
+#' @export
 contactsDetailsUI <- function(id) {
   ns <- NS(id)
   tagList(
@@ -5,6 +13,8 @@ contactsDetailsUI <- function(id) {
   )
 }
 
+
+#' @rdname mod_contactsDetails
 contactsDetailsServer <- function(id) {
   moduleServer(
     id,

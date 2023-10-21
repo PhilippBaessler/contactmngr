@@ -11,7 +11,7 @@
 
 
 
-<title>expand_collapse_test</title>
+<title>dev_notes</title>
 
 <script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
 // be compatible with the behavior of Pandoc < 2.8).
@@ -352,12 +352,166 @@ display: none;
 </div>
 
 
-<details>
-<summary>
-header here (Click to expand)
-</summary>
-some text
-</details>
+<div id="things-to-consider" class="section level1">
+<h1>Things to consider</h1>
+<ul>
+<li><p>where to save persistent configuration (per windows user?), such
+that I can access contacts using the miniUI regardless of the current
+working directory</p></li>
+<li><p>how to manage notes per contact?</p>
+<ul>
+<li><p>either save as text within the json</p></li>
+<li><p>or, create a unique id, save that in the json, and create one
+*.md file per person in a subdirectory linked via this unique
+id</p></li>
+<li><p>rendered markdown can be displayed within the miniUI (using maybe
+<code>markdown</code> package and <code>includeHTML()</code></p>
+<ul>
+<li><p>it should then be possible to edit this markdown (e.g. edit
+button and then display the raw md content in a large text box)</p></li>
+<li><p>it should be possible to open the underlying md file directly in
+Rstudio and jump to it (possibly also remembering the cursor
+position?)</p></li>
+<li><p>some search and highlight capabilities? (maybe some javascript
+libs?)</p></li>
+</ul></li>
+<li><p>use h1 headers for year, h2 headers for month, h3 headers for
+“yyyy-mm-dd - &lt;matter/topic&gt;”<br />
+or better: h1 for year (“yyyy”), h2 for month (“yyyy-mm”), and each
+entry is then a collapsible element using</p>
+<pre class="markdown"><code>&lt;details&gt;
+&lt;summary&gt;&lt;b&gt;YYYY-MM-DD&lt;/b&gt; (optional: matter/topic)&lt;/summary&gt;
+
+notes etc.
+
+- Bullet
+- Points
+
+&lt;/details&gt;</code></pre></li>
+<li><p>maybe use rmd rather than md, as this could be rendered into html
+hat has some sort of accordion for headers or something else that can be
+expanded/collapsed?<br />
+or look at this: <a href="https://gist.github.com/pierrejoubert73/902cc94d79424356a8d20be2b382e1ab" class="uri">https://gist.github.com/pierrejoubert73/902cc94d79424356a8d20be2b382e1ab</a></p></li>
+<li><p>in a later version, these notes could be organized as objects,
+where each entry is one individual object</p></li>
+</ul></li>
+<li><p>use flags and tags?</p></li>
+<li><p>maybe use proper object orientation?</p></li>
+<li><p>the fields:</p>
+<table>
+<colgroup>
+<col width="23%" />
+<col width="52%" />
+<col width="23%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>field</th>
+<th>example</th>
+<th>has history</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>surname</td>
+<td>{current: “Baessler”, previous: {name: “…”, until:
+“yyyy-mm-dd”}}</td>
+<td>yes</td>
+</tr>
+<tr class="even">
+<td>forename</td>
+<td>“Philipp”</td>
+<td>no</td>
+</tr>
+<tr class="odd">
+<td>middle_name</td>
+<td>[“foo”, “bar”]</td>
+<td>no</td>
+</tr>
+<tr class="even">
+<td>used_name</td>
+<td>“Philipp”</td>
+<td>no</td>
+</tr>
+<tr class="odd">
+<td>birthday</td>
+<td>01.09.1991</td>
+<td>no</td>
+</tr>
+<tr class="even">
+<td>siezen</td>
+<td>FALSE</td>
+<td>no</td>
+</tr>
+<tr class="odd">
+<td>emails</td>
+<td>&lt;nested&gt;</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>⤷ private</td>
+<td>{email: …., active: T, created: …., is_main: T, modified: …}</td>
+<td>yes</td>
+</tr>
+<tr class="odd">
+<td>⤷ business</td>
+<td>{email: …., active: T, created: …., is_main: T, modified: …}</td>
+<td>yes</td>
+</tr>
+<tr class="even">
+<td>phone</td>
+<td>&lt;nested&gt;</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>⤷ private</td>
+<td>{phone: …., active: T, created: …., is_main: T, modified: …}</td>
+<td>yes</td>
+</tr>
+<tr class="even">
+<td>⤷ business</td>
+<td>{phone: …., active: T, created: …., is_main: T, modified: …}</td>
+<td>yes</td>
+</tr>
+<tr class="odd">
+<td>occupation</td>
+<td>{occupation: …., active: T, created: …., modified: …}</td>
+<td>yes</td>
+</tr>
+<tr class="even">
+<td>employment</td>
+<td>{company: …, department: …, active: T, created: …, modified: …}</td>
+<td>yes</td>
+</tr>
+<tr class="odd">
+<td>first_encounter</td>
+<td>{notes: …, date: …}</td>
+<td>no</td>
+</tr>
+<tr class="even">
+<td>skills_and_expertise</td>
+<td>{competence: …, level: &lt;1-4&gt;, notes: …}</td>
+<td>no</td>
+</tr>
+<tr class="odd">
+<td>points</td>
+<td>-2…2</td>
+<td>no</td>
+</tr>
+<tr class="even">
+<td><del>picture</del></td>
+<td><del>base64</del></td>
+<td><del>no</del></td>
+</tr>
+<tr class="odd">
+<td>history</td>
+<td>{{what: [fields], date:…}, {what: “creation”, date:…}}</td>
+<td>yes</td>
+</tr>
+</tbody>
+</table></li>
+</ul>
+</div>
 
 
 

@@ -38,28 +38,31 @@
 
 -   use flags and tags?
 
--   maybe use proper object orientation?
+-   maybe use proper OOP rather than list+jsonlite?
 
 -   the fields:
 
-    | field                | example                                                                 | has history |
-    |----------------|-----------------------------------------|----------------|
-    | surname              | {current: "Baessler", previous: {name: "...", until: "yyyy-mm-dd"}}     | yes         |
-    | forename             | "Philipp"                                                               | no          |
-    | middle_name          | ["foo", "bar"]                                                          | no          |
-    | used_name            | "Philipp"                                                               | no          |
-    | birthday             | 01.09.1991                                                              | no          |
-    | siezen               | FALSE                                                                   | no          |
-    | emails               | \<nested\>                                                              |             |
-    | ⤷ private            | {email: ...., active: T, created: ...., is_main: T, modified: ...}      | yes         |
-    | ⤷ business           | {email: ...., active: T, created: ...., is_main: T, modified: ...}      | yes         |
-    | phone                | \<nested\>                                                              |             |
-    | ⤷ private            | {phone: ...., active: T, created: ...., is_main: T, modified: ...}      | yes         |
-    | ⤷ business           | {phone: ...., active: T, created: ...., is_main: T, modified: ...}      | yes         |
-    | occupation           | {occupation: ...., active: T, created: ...., modified: ...}             | yes         |
-    | employment           | {company: ..., department: ..., active: T, created: ..., modified: ...} | yes         |
-    | first_encounter      | {notes: ..., date: ...}                                                 | no          |
-    | skills_and_expertise | {competence: ..., level: \<1-4\>, notes: ...}                           | no          |
-    | points               | -2...2                                                                  | no          |
-    | ~~picture~~          | ~~base64~~                                                              | ~~no~~      |
-    | history              | {{what: [fields], date:...}, {what: "creation", date:...}}              | yes         |
+    | field                | example                                                                            | history |
+    |----------------|-------------------------------------------------|--------|
+    | surname              | {current: "Baessler", previous: {name: "...", until: "yyyy-mm-dd"}}                | yes     |
+    | forename             | "Philipp"                                                                          | no      |
+    | middle_name          | ["foo", "bar"]                                                                     | no      |
+    | used_name            | "Philipp"                                                                          | no      |
+    | birthday             | 01.09.1991                                                                         | no      |
+    | siezen               | FALSE                                                                              | no      |
+    | email                | \<nested\>                                                                         |         |
+    | ⤷ private            | {email: ...., active: T, created: ...., is_main: T, modified: ...}                 | yes     |
+    | ⤷ business           | {email: ...., active: T, created: ...., is_main: T, modified: ...}                 | yes     |
+    | phone                | \<nested\>                                                                         |         |
+    | ⤷ private            | {phone: ...., active: T, created: ...., is_main: T, modified: ...}                 | yes     |
+    | ⤷ business           | {phone: ...., active: T, created: ...., is_main: T, modified: ...}                 | yes     |
+    | occupation           | {occupation: ...., active: T, created: ...., modified: ...}                        | yes     |
+    | employment           | {company: ..., department: ..., role: ..., active: T, created: ..., modified: ...} | yes     |
+    | first_encounter      | {notes: ..., date: ...}                                                            | no      |
+    | skills_and_expertise | {competence: ..., level: \<1-4\>, notes: ...}                                      | no      |
+    | points               | -2...2                                                                             | no      |
+    | ~~picture~~          | ~~base64~~                                                                         | ~~no~~  |
+    | history              | {{what: [fields], date:...}, {what: "creation", date:...}}                         | yes     |
+
+-   competencies should be selected from dropdown (no free text) in order to facilitate searching later on;\
+    available competencies should be configurable in a menu, possibly hierarchical to introduce some sort of structure which allows finding people that do not exactly match the competency but have related skills
