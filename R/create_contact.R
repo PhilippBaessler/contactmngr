@@ -22,18 +22,18 @@
 #' @export
 #'
 #' @examples
-create_contact <- function(contact_database,
+create_contact <- function(id = paste(surname, forename, sep = "_"),
                            surname,
                            forename,
                            middle_name = NULL,
                            used_name = forename,
                            birthday = NULL,
                            siezen = NULL,
-                           business_emails, # can be list of mail addresses, first is main
-                           private_emails = NULL, # can be list of mail addresses, first is main
-                           business_phone = NULL, # can be list, first is main
-                           private_phone = NULL, # can be list, first is main
-                           occupation = NULL, # list(list(occupation:.., active=..))
+                           business_emails, # can be character vector of mail addresses, first is main
+                           private_emails = NULL, # can be character vector of mail addresses, first is main
+                           business_phone = NULL, # can be character vector, first is main
+                           private_phone = NULL, # can be character vector, first is main
+                           `function` = NULL, # list(list(`function`:.., active=..))
                            employment = NULL, # list(company=.., department=.., active=..)
                            first_encounter = NULL, # list(notes:.., date:...)
                            expertise = NULL, # list(list(competence:.., level = 1:4, notes: ...))
@@ -42,55 +42,24 @@ create_contact <- function(contact_database,
 {
 
     # handle input ####
-    stopifnot(is.null(business_emails) || is.list(business_mails))
-    stopifnot(is.null(private_emails)  || is.list(private_emails))
-    stopifnot(is.null(business_phone)  || is.list(business_phone))
-    stopifnot(is.null(private_phone)   || is.list(private_phone))
+    mode <- match.arg(mode)
+
+    stopifnot(purrr::is_scalar_character(surname))
+    stopifnot(purrr::is_scalar_character(forename))
+    stopifnot(is.null(middle_name) || is.character(middle_name))
+    stopifnot(is.null(business_emails) || is.character(business_mails))
+    stopifnot(is.null(private_emails)  || is.character(private_emails))
+    stopifnot(is.null(business_phone)  || is.character(business_phone))
+    stopifnot(is.null(private_phone)   || is.character(private_phone))
     stopifnot(is.null(occupation)      || is.list(occupation))
     stopifnot(is.null(employment)      || is.list(employment))
     stopifnot(is.null(first_encounter) || is.list(first_encounter))
     stopifnot(is.null(expertise)       || is.list(expertise))
 
-    if (is_not_list(business_emails))
-        business_emails <- list(business_emails)
-
-    if (is_not_list(private_emails))
-        private_emails <- list(private_emails)
-
-    if (is_not_list(business_phone))
-        business_phone <- list(business_phone)
-
-    if (is_not_list(private_phone))
-        private_phone <- list(private_phone)
-
-
-    # maybe assert that
-    # - occupation is two level list
-    # - expertise is two level list
-    # - occupation, employment, expertise, first_encounter have the expected structure and fields
-
     # maybe check here that
     # - emails are actual emails
     # - phone numbers are acceptable
     # - all date fields are actually of type date
-
-
-
-    # check if contact exists already ####
-
-    # check by (current) surname and forename | todo: mabye non-case-sensitive?
-    same_names <- purrr::keep(contact_database,
-                              ~ .x[["surname"]][["current"]] == surname &
-                                  .x[["forename"]] == forename) %>%
-        names()
-
-    # also check if the constructed id is unique
-
-
-    # look for surname and forename, if not found, add
-    # if found, raise error if mode == "check", add with new unique id if "add" or replace if "overwrite"
-
-    id <- ... # logic to be defined
 
 
 
@@ -104,25 +73,25 @@ create_contact <- function(contact_database,
             birthday    = birthday,
             siezen      = siezen,
             email = list(
-                business = structure_emails(business_emails),
-                private  = structure_emails(private_emails)
+                business = parse_emails(business_emails),
+                private  = parse_emails(private_emails)
             ),
             phone = list(
-                business = structure_phones(business_phone),
-                private  = structure_phones(private_phone)
+                business = parse_phones(business_phone),
+                private  = parse_phones(private_phone)
             ),
-            occupation      = occupation,
-            employment      = employment,
-            first_encounter = first_encounter,
-            expertise       = expertise,
+            `function`      = parse_function(`function`),
+            employment      = parse_employment(employment),
+            first_encounter = parse_first_encounter(first_encounter),
+            expertise       = parse_expertise(expertise),
             points          = points,
-            history         = list(list(what = "creation", date = Sys.time())),
+            history         = tibble(what = "creation", date = Sys.time()),
             id              = id
         )
     )
     names(new_contact) <- id
 
-    contact_database
+    new_contact
 }
 
 
@@ -130,35 +99,140 @@ create_contact <- function(contact_database,
 
 # create_contact helpers ----------------------------------------------------------------------
 
-is_not_list <- function(arg) {
-    !is.null(arg) && !is.list(arg)
+parse_function <- function(definition) {
+    if (is.null(definition))
+        return(NULL)
+
+    stopifnot(is.list(definition))
+    stopifnot(purrr::vec_depth(definition) %in% c(2, 3))
+
+    if (purrr::vec_depth(definition) == 2)
+        definition <- list(definition)
+
+    stopifnot(all(purrr::map_lgl(definition, ~ length(names(.x)) > 0)))
+    stopifnot(all(purrr::map_lgl(definition, ~ any(grepl("^func$|^function$", names(.x))))))
+
+    definition <- purrr::map(definition, ~ `names<-`(.x, sub("^func$", "function", names(.x))))
+
+    .function <- purrr::map_depth(definition, 1, as_tibble)
+    .function <- purrr::list_rbind(.function)
+
+    .function <- .function[, names(.function) %in% c("function", "active")] # ignore any other input fields
+
+    if (!("active" %in% names(.function)))
+        .function$active <- NA
+
+    .function$created  <- Sys.time()
+    .function$modified <- NA
+
+    .function
 }
 
-structure_emails <- function(email_list) {
+parse_employment <- function(definition) {
+    if (is.null(definition))
+        return(NULL)
+
+    stopifnot(is.list(definition))
+    stopifnot(purrr::vec_depth(definition) %in% c(2, 3))
+
+    if (purrr::vec_depth(definition) == 2)
+        definition <- list(definition)
+
+    stopifnot(all(purrr::map_lgl(definition, ~ length(names(.x)) > 0)))
+    stopifnot(all(purrr::map_lgl(definition, ~ c("company") %in% names(.x))))
+
+    employment <- purrr::map_depth(definition, 1, as_tibble)
+    employment <- purrr::list_rbind(employment)
+
+    employment <- employment[, names(employment) %in% c("company", "department", "role", "active")] # ignore any other input fields
+
+    if (!("department" %in% names(employment)))
+        employment$department <- NA
+
+    if (!("role" %in% names(employment)))
+        employment$role <- NA
+
+    if (!("active" %in% names(employment)))
+        employment$active <- NA
+
+
+    employment$created  <- Sys.time()
+    employment$modified <- NA
+
+    employment
+}
+
+parse_first_encounter <- function(definition) {
+    if (is.null(definition))
+        return(NULL)
+
+    stopifnot(is.list(definition))
+    stopifnot(purrr::vec_depth(definition) == 2)
+
+    if (!("notes" %in% names(definition)))
+        definition$notes <- NULL
+
+    if (!("date" %in% names(definition))) {
+        definition$date <- NULL
+    } else if (!inherits(definition$date, "POSIXct")) {
+        stop("wrong date format provided, use POSIXct")
+    }
+
+    definition[c("notes", "date")] # ignore any other fields
+}
+
+parse_expertise <- function(definition) {
+    if (is.null(definition))
+        return(NULL)
+
+    stopifnot(is.list(definition))
+    stopifnot(purrr::vec_depth(definition) %in% c(2, 3))
+
+    if (purrr::vec_depth(definition) == 2)
+        definition <- list(definition)
+
+    stopifnot(all(purrr::map_lgl(definition, ~ length(names(.x)) > 0)))
+    stopifnot(all(purrr::map_lgl(definition, ~ c("competence") %in% names(.x))))
+
+    expertise <- purrr::map_depth(definition, 1, as_tibble)
+    expertise <- purrr::list_rbind(expertise)
+
+    expertise <- expertise[, names(expertise) %in% c("competence", "level", "notes")] # ignore any other input fields
+
+    if (!("level" %in% names(expertise)))
+        expertise$level <- NA
+
+    if (!("notes" %in% names(expertise)))
+        expertise$notes <- NA
+
+    expertise
+}
+
+parse_emails <- function(email_list) {
     if (is.null(email_list))
         return(NULL)
 
     email_list <- lapply(email_list,
-                         function(x) data.frame(email = x,
-                                                active = TRUE,
-                                                is_main = FALSE,
-                                                modified = Sys.time(),
-                                                stringsAsFactors = FALSE))
+                         function(x) tibble(email = x,
+                                            active = TRUE,
+                                            is_main = FALSE,
+                                            modified = Sys.time(),
+                                            stringsAsFactors = FALSE))
 
     email_list[[1]]$is_main <- TRUE
 
     do.call(rbind, email_list)
 }
 
-structure_phones <- function(phone_list) {
+parse_phones <- function(phone_list) {
     if (is.null(phone_list))
         return(NULL)
 
-    phone_list <- lapply(phone_list, function(x) data.frame(email = x,
-                                                            active = TRUE,
-                                                            is_main = FALSE,
-                                                            modified = Sys.time(),
-                                                            stringsAsFactors = FALSE))
+    phone_list <- lapply(phone_list, function(x) tibble(phone = x,
+                                                        active = TRUE,
+                                                        is_main = FALSE,
+                                                        modified = Sys.time(),
+                                                        stringsAsFactors = FALSE))
     phone_list[[1]]$is_main <- TRUE
 
     do.call(rbind, phone_list)
