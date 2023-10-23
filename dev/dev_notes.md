@@ -156,7 +156,8 @@
 
     ```
 
--   as for the DT server side, the plugin `scrollResize` does the trick to have the DT table fill the full available (remaining) page height (the commented part has some funny / buggy behavior):
+-   as for the DT server side, the plugin `scrollResize` does the trick to have the DT table fill the full available (remaining) page height (the commented part has some funny / buggy behavior):\
+    <https://datatables.net/blog/2017-12-31>
 
     ``` R
     server <- function(input, output, session) {
@@ -174,3 +175,115 @@
         )
     }
     ```
+
+    however, `scrollResize` and `scroller` together seem to result in an odd bug: after initializing, the infotext below the datatable shows the wrong numbers "Showing x to y of z ...", where especially y seems to be off. As soon as the window has been resized once this is fixed and from there on the numbers are correct. I did no thorough investigation, but I assume this might have something to do with how `scroller` calculates the number of displayed rows, where probably the fixed pixel-value that is used when initializing is used - however this value may not be the actual one due to interaction with `scrollResize`. I.e. in the server function the datatable is rendered like this:
+
+    ``` R
+    DT::renderDT(
+            mtcars,
+            options = list(scrollResize = TRUE, scrollY = "200px", scroller = TRUE),
+            extensions = c("Scroller"),
+            plugins = c("scrollResize")
+        )
+    ```
+
+    However, this 200px are overruled (or rather updated) by `scrollResize`. As a first fix, I tried this
+
+    ``` R
+    DT::renderDT(
+            mtcars,
+            options = list(scrollResize = TRUE, 
+                           scrollY = input$windowSize[1], 
+                           scroller = TRUE),
+            extensions = c("Scroller"),
+            plugins = c("scrollResize")
+        )
+    ```
+
+    where I use the window size (i.e. the height) after connecting to shiny by client side javascript. ui.R:
+
+    ``` R
+    tags$head(tags$script(
+            "
+            var windowSize = [0, 0];
+            $(document).on('shiny:connected', function(e) {
+                windowSize[0] = window.innerWidth;
+                windowSize[1] = window.innerHeight;
+                Shiny.onInputChange('windowSize', windowSize);
+            });
+            $(window).resize(function(e) {
+                windowSize[0] = window.innerWidth;
+                windowSize[1] = window.innerHeight;
+                Shiny.onInputChange('windowSize', windowSize);
+            });
+            "
+        ))
+    ```
+
+    Since this is only required once after initializing, the update function on resize is not really required. This of course does not work as I need the actual height of the datatable's scrollBody. So i need to do something like this
+
+    ``` {.javascript .R}
+    const contactList = document.getElementById('contact_list');
+    const scrollBody = contactList.getElementsByClassName('dataTables_scrollBody')[0];
+    ```
+
+    But the question is when to do this. Using `(document).ready()` and `(window).on('load', …)` did not work, as the `dataTables_scrollBody` could not yet be derived - but when I do the same thing manually in the console it works. Maybe I need to wait until some code from `scrollResize` has been executed after startup?
+
+    Maybe this (found here: <https://stackoverflow.com/questions/5525071/how-to-wait-until-an-element-exists>):
+
+    ``` javascript
+    function waitForElm(selector) {
+        return new Promise(resolve => {
+            if (document.querySelector(selector)) {
+                return resolve(document.querySelector(selector));
+            }
+
+            const observer = new MutationObserver(mutations => {
+                if (document.querySelector(selector)) {
+                    observer.disconnect();
+                    resolve(document.querySelector(selector));
+                }
+            });
+
+            observer.observe(document.body, {
+                childList: true,
+                subtree: true
+            });
+        });
+    }
+
+    // to use it:
+    waitForElm('.some-class').then((elm) => {
+        console.log('Element is ready');
+        console.log(elm.textContent);
+    });
+
+    // or async/await:
+    const elm = await waitForElm('.some-class');
+    ```
+
+    This didn't work, I got an "unexpected token &" error in the console. Another approach: Maybe create an eventListener for #contact_list element that fires when a child with class "dataTables_scrollBody" is added. I also tried this:
+
+    ``` javascript
+    var contactListScrollBodyHeight = 0;
+            $(document).ready(function(e) {
+                const observer = new IntersectionObserver(updateHeight, { childList: true });
+
+                function updateHeight(mutationsList, observer) {
+                    for (const mutation of mutationsList) {
+                        if (mutation.type === 'childList') {
+                            console.log(mutation.addedNodes[0]);
+                            const scrollBody = mutation.addedNodes[0]?.getElementsByClassName('dataTables_scrollBody');
+
+                            if (scrollBody)
+                                Shiny.onInputChange('contact_list_scroll_height', scrollBody[0].offsetHeight);
+                        }
+                    }
+                }
+
+                const contactList = document.getElementById('contact_list');
+                observer.observe(contactList);
+            });
+    ```
+
+    To tired now to finish this...
