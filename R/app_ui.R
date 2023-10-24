@@ -1,19 +1,42 @@
 ui <- miniUI::miniPage(
     tags$head(tags$script(
         "
-        var contactListScrollBodyHeight = 0;
-        $(document).ready(function(e) {
-            //observer.observe(contactList);
-            //console.log(contactList.offsetHeight);
-            //console.log(contactList);
-            //Shiny.onInputChange('contact_list_scroll_height2', contactList.offsetHeight);
-            //console.log(document.getElementById('contact_list').getElementsByClassName('dataTables_scrollBody')[0].offsetHeight)
+        function resizeAllDataTables() {
+            // just testing - here would need to be a proper handling of ids and classes
+            const dataTableWrapper = document.getElementsByClassName('dataTables_wrapper')[0];
+            dataTableId = dataTableWrapper.id.replace('_wrapper', '');
+            console.log('now resizing...');
+            console.log(dataTableId);
+            //$('#' + dataTableId).DataTable().scroller.measure();
+            $('#' + dataTableId).DataTable().tables( { visible: true, api: true } ).scroller.measure(); //https://datatables.net/reference/api/scroller.measure()
+        }
 
-            //const scrollBody = await waitForClassElement(contactList, 'dataTables_scrollBody');
-            //console.log(contactList);
-            //console.log(scrollBody);
-            //const scrollBody = contactList.getElementsByClassName('dataTables_scrollBody')[0];
-            //Shiny.onInputChange('contact_list_scroll_height', scrollBody.offsetHeight);
+        Shiny.addCustomMessageHandler('triggerScrollerMeasure', function(shinyId) {
+            const dataTable = document.getElementById(shinyId);
+            console.log(dataTable);
+            const dataTableWrapper  = dataTable.getElementsByClassName('dataTables_wrapper')[0];
+            console.log(dataTableWrapper);
+            const dataTableId = dataTableWrapper.id.replace('_wrapper', '');
+            console.log(dataTableId);
+            $('#' + dataTableId).DataTable().scroller.measure();
+        })
+
+        $(document).on('resize', function(e) {
+            // this approach seems to be always one step too late
+            // e.g. try maximizing then unmaximizing then maximizing and so on, you will see that
+            // the update of the info row beneath the datatable is always one step behind
+
+            // just testing - here would need to be a proper handling of ids and classes
+            const dataTableWrapper = document.getElementsByClassName('dataTables_wrapper')[0];
+            dataTableId = dataTableWrapper.id.replace('_wrapper', '');
+            $('#' + dataTableId).DataTable().scroller.measure();
+        })
+
+        var contactListScrollBodyHeight = 'TEST'; // used to test DT callback
+
+        $(document).ready(function(e) {
+            //does not really work
+            //Shiny.setInputChange('contact_list_scroll_height', scrollBody.offsetHeight);
         });
         "
     )),
@@ -60,6 +83,8 @@ ui <- miniUI::miniPage(
                 actionButton("open_advanced_search", "advanced search",
                              style = "display: inline-block; margin-right: 10px;"),
                 actionButton("add_new_contact", "add contact",
+                             style = "display: inline-block;"),
+                actionButton("DEBUG_trigger_scroller_measure", "DEBUG trigger scroller",
                              style = "display: inline-block;")
             ),
             DT::DTOutput("contact_list", height = "100%")

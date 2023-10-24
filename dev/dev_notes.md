@@ -98,6 +98,31 @@
 
     -   check if id already exists, if so either cancel or force overwrite depending on argument
 
+# To Do
+
+-   message "nothing to compact"? where does it come from & how to remove it?\
+    it was introduced when implementing the DEBUG button for triggering the scroller resize. So it might have something to do with this:
+
+    ``` R
+    # server.R
+    observeEvent(input$DEBUG_trigger_scroller_measure, {
+        session$sendCustomMessage("triggerScrollerMeasure",
+                                  "contact_list")
+    })
+    ```
+
+    ``` javascript
+    Shiny.addCustomMessageHandler('triggerScrollerMeasure', function(shinyId) {
+                const dataTable = document.getElementById(shinyId);
+                console.log(dataTable);
+                const dataTableWrapper  = dataTable.getElementsByClassName('dataTables_wrapper')[0];
+                console.log(dataTableWrapper);
+                const dataTableId = dataTableWrapper.id.replace('_wrapper', '');
+                console.log(dataTableId);
+                $('#' + dataTableId).DataTable().scroller.measure();
+            })
+    ```
+
 # Implementation notes
 
 -   the quick-and-dirty trick with `shiny::tabsetPanel` as hidden tabs to create some sort of dynamic GUI seems to be not working with `miniUI` if I want to have the page fully filled; I guess the reason is that the nesting of `miniContentPanel(tabsetPanel(tabPanelBody(fillCol(…` results in `fillCol` being the child of a *div* that has no explicit height.As here, the commented stuff does not work as intended - when using the uncommented part, the full height DT table works:
@@ -220,7 +245,7 @@
         ))
     ```
 
-    Since this is only required once after initializing, the update function on resize is not really required. This of course does not work as I need the actual height of the datatable's scrollBody. So i need to do something like this
+    Worth noting, that `Shiny.onInputChange` is superseded by `Shiny.setInputChange`. Since this is only required once after initializing, the update function on resize is not really required. This of course does not work as I need the actual height of the datatable's scrollBody. So i need to do something like this
 
     ``` {.javascript .R}
     const contactList = document.getElementById('contact_list');
@@ -320,3 +345,5 @@
     ```
 
     I really don't get it.... Why in the completely wild fuck does `table.scroller.measure()` not work here while it works when executed in the console?!
+
+    Ok, I can't be bothered anymore. In the end, I might have to admit that using extension `scroller` together with the `scrollResize` plugin might just be a bad idea. I'm probably better of just using `scrollResize` which basically has all the functionality I need except for the dynamic update of the info text beneath the table (indicating which rows are currently shown). It will be easier to just implement this missing feature myself than trying to get these two fellas to work together. First idea for implementation is to use the `footerCallback`.
