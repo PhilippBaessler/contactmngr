@@ -286,4 +286,37 @@
             });
     ```
 
-    To tired now to finish this...
+    To tired now to finish this... Besides, there has to be an easier and cleaner way.\
+    OK, here's the thing (could be so easy): I could just use
+
+    ``` javascript
+    $('#DataTables_Table_0').DataTable().scroller.measure()
+    ```
+
+    This will trigger the re-measurement of the DT by the scroller extension. However, two issues here:
+
+    -   the ID is dynamically created and I cannot define it from within shiny (it seams)
+
+    -   when to call the code?
+
+    Maybe a onetime drawCallback which only executes once:
+
+    ``` R
+    output$contact_list <- DT::renderDT(
+            rbind(mtcars, mtcars, mtcars, mtcars),
+            options = list(scrollResize = TRUE, scrollY = "313px", scroller = TRUE),
+            extensions = c("Scroller"),
+            plugins = c("scrollResize"),
+            callback = DT::JS(
+                "
+                table.scroller.measure(); // this apparently has no effect
+                table.scroller.toPosition(3); // this works
+                console.log(table); // this works
+                console.log('hello'); // this works
+                return table;
+                "
+            )
+        )
+    ```
+
+    I really don't get it.... Why in the completely wild fuck does `table.scroller.measure()` not work here while it works when executed in the console?!

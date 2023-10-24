@@ -10,10 +10,24 @@ server <- function(input, output, session) {
         #options = list(scrollResize = TRUE, scrollY = input$windowSize[1], scroller = TRUE),
         options = list(scrollResize = TRUE, scrollY = "313px", scroller = TRUE),
         extensions = c("Scroller"),
-        plugins = c("scrollResize")
+        plugins = c("scrollResize"),
+        callback = DT::JS(
+            "
+            table.scroller.measure();
+            table.scroller.toPosition(3);
+            console.log(table);
+            return table;
+            "
+        )
     )
 
     observe({
-        print(input$windowSize)
+        print("1")
+        print(input$contact_list_scroll_height)
+    })
+
+    observe({
+        print("2")
+        print(input$contact_list_scroll_height)
     })
 }
