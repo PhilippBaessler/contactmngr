@@ -295,7 +295,7 @@
 
     This will trigger the re-measurement of the DT by the scroller extension. However, two issues here:
 
-    -   the ID is dynamically created and I cannot define it from within shiny (it seams)
+    -   the ID is dynamically created and I cannot define it from within shiny (it seems)
 
     -   when to call the code?
 
