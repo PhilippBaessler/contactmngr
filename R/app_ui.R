@@ -1,45 +1,58 @@
 ui <- miniUI::miniPage(
-    tags$head(tags$script(
+    tags$head(tags$script(HTML(
         "
-        function resizeAllDataTables() {
-            // just testing - here would need to be a proper handling of ids and classes
-            const dataTableWrapper = document.getElementsByClassName('dataTables_wrapper')[0];
-            dataTableId = dataTableWrapper.id.replace('_wrapper', '');
-            console.log('now resizing...');
-            console.log(dataTableId);
-            //$('#' + dataTableId).DataTable().scroller.measure();
-            $('#' + dataTableId).DataTable().tables( { visible: true, api: true } ).scroller.measure(); //https://datatables.net/reference/api/scroller.measure()
+        function getDisplayedRows() {
+            scrollBody = document.querySelectorAll('#contact_list .dataTables_scrollBody')[0];
+
+            const rows = document.querySelectorAll('#contact_list tbody tr');
+            const rowHeights = Array.from(rows, (r) => r.offsetHeight);
+            console.log(scrollBody);
+
+            scrollBody.addEventListener('scroll', function() {
+                const topPosition = scrollBody.scrollTop;
+                const bodyHeight = scrollBody.clientHeight;
+                console.log('topPos: ' + topPosition + ' bdHeight: ' + bodyHeight);
+                let firstRow = 0;
+                let sumHeight = 0;
+
+                for (let i = 0; i < rowHeights.length; i++) {
+                    sumHeight += rowHeights[i];
+
+                    if (sumHeight >= topPosition) {
+                        firstRow = i;
+                        break;
+                    }
+                }
+
+                let lastRow = firstRow;
+                sumHeight = 0;
+
+                for (let i = firstRow; i < rowHeights.length; i++) {
+                    sumHeight += rowHeights[i];
+
+                    if (sumHeight > bodyHeight) {
+                        lastRow = i;
+                        break;
+                    }
+                }
+
+                console.log('The first row: ' + (firstRow + 1) + ', the last row: ' + (lastRow + 1));
+            });
         }
 
-        Shiny.addCustomMessageHandler('triggerScrollerMeasure', function(shinyId) {
-            const dataTable = document.getElementById(shinyId);
-            console.log(dataTable);
-            const dataTableWrapper  = dataTable.getElementsByClassName('dataTables_wrapper')[0];
-            console.log(dataTableWrapper);
-            const dataTableId = dataTableWrapper.id.replace('_wrapper', '');
-            console.log(dataTableId);
-            $('#' + dataTableId).DataTable().scroller.measure();
-        })
+        function getRowHeights(tableId) {
+            const rows = document.querySelectorAll('#' + tableId + ' tbody tr');
+            const rowHeights = Array.from(rows, (r) => r.offsetHeight);
+            console.log(rowHeights);
+        }
 
-        $(document).on('resize', function(e) {
-            // this approach seems to be always one step too late
-            // e.g. try maximizing then unmaximizing then maximizing and so on, you will see that
-            // the update of the info row beneath the datatable is always one step behind
-
-            // just testing - here would need to be a proper handling of ids and classes
-            const dataTableWrapper = document.getElementsByClassName('dataTables_wrapper')[0];
-            dataTableId = dataTableWrapper.id.replace('_wrapper', '');
-            $('#' + dataTableId).DataTable().scroller.measure();
-        })
-
-        var contactListScrollBodyHeight = 'TEST'; // used to test DT callback
-
-        $(document).ready(function(e) {
-            //does not really work
-            //Shiny.setInputChange('contact_list_scroll_height', scrollBody.offsetHeight);
-        });
+            //const dataTableWrapper  = dataTable.getElementsByClassName('dataTables_wrapper')[0];
+            //console.log(dataTableWrapper);
+            //const dataTableId = dataTableWrapper.id.replace('_wrapper', '');
+            //console.log(dataTableId);
+            //$('#' + dataTableId).DataTable().scroller.measure();
         "
-    )),
+    ))),
     miniUI::gadgetTitleBar(
         uiOutput("title"),
         right = miniUI::miniTitleBarButton("Close", "Close", primary = TRUE),

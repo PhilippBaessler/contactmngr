@@ -1,47 +1,20 @@
+tmp_data <- rbind(mtcars, mtcars, mtcars, mtcars)
+tmp_data$mpg <- 1:nrow(tmp_data)
+
 server <- function(input, output, session) {
     output$contact_list <- DT::renderDT(
-        rbind(mtcars, mtcars, mtcars, mtcars),
+        tmp_data,
         options = list(scrollResize = TRUE,
-                       scrollY = "80vh", #"300px"
-                       scroller = TRUE,
-                       # scrollCollapse = FALSE, # no idea what this is doing
-                       # this seems to introduce an infinite loop:
-                       # drawCallback = DT::JS(
-                       #     "
-                       #     function() {
-                       #      resizeAllDataTables();
-                       #     }
-                       #     "
-                       # )),
-                       # this does nothing:
-                       stateLoaded = DT::JS(
+                       paging = FALSE,
+                       scrollY = "100%",
+                       initComplete = DT::JS(HTML(
                            "
-                           function(settings, data) {
-                              console.log('stateLoaded');
-                              resizeAllDataTables();
+                           function(settings, object) {
+                               getDisplayedRows();
                            }
                            "
-                       ),
-                       initComplete = DT::JS(
-                           "
-                           function(settings, data) {
-                              console.log('initComplete');
-                              resizeAllDataTables();
-                           }
-                           "
-                       )),
+                       ))),
         extensions = c("Scroller"),
-        plugins = c("scrollResize"),
-        callback = DT::JS(
-            "
-            console.log(contactListScrollBodyHeight);
-            return(table);
-            "
-        )
+        plugins = c("scrollResize")
     )
-
-    observeEvent(input$DEBUG_trigger_scroller_measure, {
-        session$sendCustomMessage("triggerScrollerMeasure",
-                                  "contact_list")
-    })
 }
