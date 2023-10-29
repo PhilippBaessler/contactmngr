@@ -125,7 +125,7 @@
 
 # Implementation notes
 
--   the quick-and-dirty trick with `shiny::tabsetPanel` as hidden tabs to create some sort of dynamic GUI seems to be not working with `miniUI` if I want to have the page fully filled; I guess the reason is that the nesting of `miniContentPanel(tabsetPanel(tabPanelBody(fillCol(…` results in `fillCol` being the child of a *div* that has no explicit height.As here, the commented stuff does not work as intended - when using the uncommented part, the full height DT table works:
+-   the quick-and-dirty trick with `shiny::tabsetPanel` as hidden tabs to create some sort of dynamic GUI seems to be not working with `miniUI` if I want to have the page fully filled; I guess the reason is that the nesting of `miniContentPanel(tabsetPanel(tabPanelBody(fillCol(…` results in `fillCol` being the child of a *div* that has no explicit height.As here, the commented stuff does not work as intended - when using the un-commented part, the full height DT table works:
 
     ``` r
     ui <- miniUI::miniPage(
@@ -351,52 +351,66 @@
 
     ``` javascript
     function registerRowInfoHandler(id) {
-        function setCumSumRowHeights(scrollBody) {
-            const rows = document.querySelectorAll('#' + id + ' tbody tr');
-            const rowHeights = Array.from(rows, (r) => r.offsetHeight);
-            
-            cumsumHeights = rowHeights.map( (sum => value => sum += value)(0) );
-        }
-        
-        function updateRowInfoText(rowInfoContainer) {
-            const topPosition = scrollBody.scrollTop;
-            const bodyHeight = scrollBody.clientHeight;
-            let firstRow = 0;
-            
-            for (let i = 0; i < cumsumHeights.length; i++) {
-                if (cumsumHeights[i] >= topPosition) {
-                    firstRow = i;
-                    break;
+                async function updateWithIframeHeight() {
+                    console.log('async running');
+                    updateRowInfoText(rowInfoDiv);
                 }
-            }
-            
-            let lastRow = firstRow;
-            
-            for (let i = firstRow; i <= cumsumHeights.length; i++) {
-                lastRow = i;
-                if (cumsumHeights[i] - cumsumHeights[firstRow] > bodyHeight)
-                break;
-            }
-            
-            rowInfoContainer.innerHTML = 'Showing ' + (firstRow + 1) + ' to ' + lastRow + ' of ' + cumsumHeights.length + ' rows';
-        }
-        
-        const scrollBody = document.querySelectorAll('#' + id + '_wrapper .dataTables_scrollBody')[0];
-        const rowInfoDiv = document.querySelectorAll('#' + id + '_info')[0];
-        
-        console.log(scrollBody);
-        
-        let cumsumHeights =  [];
-        setCumSumRowHeights(scrollBody);
-        
-        window.addEventListener('resize', function() {
-            setCumSumRowHeights(scrollBody);
-            updateRowInfoText(rowInfoDiv);
-        })
-        
-        scrollBody.addEventListener('scroll', function() {
-            updateRowInfoText(rowInfoDiv);
-        });
+
+                const observer = new MutationObserver((mutationsList) => {
+                    for (const m of mutationsList) {
+                        if (m.type === 'childList' && document.getElementById(id + '_wrapper').parentElement.querySelectorAll('iframe')) {
+                            observer.disconnect();
+                            updateWithIframeHeight();
+                        }
+                    }
+                })
+
+                function setCumSumRowHeights(scrollBody) {
+                    const rows = document.querySelectorAll('#' + id + ' tbody tr');
+                    const rowHeights = Array.from(rows, (r) => r.offsetHeight);
+
+                    cumsumHeights = rowHeights.map( (sum => value => sum += value)(0) );
+                }
+
+                function updateRowInfoText(rowInfoContainer, bodyHeight = scrollBody.offsetHeight) {
+                    const topPosition = scrollBody.scrollTop;
+                    //const bodyHeight = scrollBody.clientHeight;
+                    let firstRow = 0;
+
+                    for (let i = 0; i < cumsumHeights.length; i++) {
+                        if (cumsumHeights[i] >= topPosition) {
+                            firstRow = i;
+                            break;
+                        }
+                    }
+
+                    let lastRow = firstRow;
+
+                    for (let i = firstRow; i <= cumsumHeights.length; i++) {
+                        lastRow = i;
+                        if (cumsumHeights[i] - cumsumHeights[firstRow] > bodyHeight)
+                            break;
+                    }
+
+                    rowInfoContainer.innerHTML = 'Showing ' + (firstRow + 1) + ' to ' + lastRow + ' of ' + cumsumHeights.length + ' rows';
+                }
+
+                const scrollBody = document.querySelectorAll('#' + id + '_wrapper .dataTables_scrollBody')[0];
+                const rowInfoDiv = document.querySelectorAll('#' + id + '_info')[0];
+
+                let cumsumHeights =  [];
+                setCumSumRowHeights(scrollBody);
+
+                window.addEventListener('resize', function() {
+                    setCumSumRowHeights(scrollBody);
+                    updateRowInfoText(rowInfoDiv);
+                })
+
+                scrollBody.addEventListener('scroll', function() {
+                    updateRowInfoText(rowInfoDiv);
+                });
+
+                observer.observe(document.getElementById(id + '_wrapper').parentElement, { childList: true, subtree: true });
     }
     ```
 
@@ -414,7 +428,6 @@
                                initComplete = DT::JS(HTML(
                                    "
                                    function(settings, object) {
-                                       console.log(settings.nTable.id);
                                        registerRowInfoHandler(settings.nTable.id);
                                    }
                                    "
@@ -432,6 +445,12 @@
         const rowInfoDiv = document.querySelectorAll('#' + id + ' .dataTables_info')[0];
         ```
 
+    -   Changes:
+
+        -   `offsetHeight` instead of `clientHeight` for height of shown part of `scrollBody` is more accurate
+
+        -   
+
     -   Improvements:
 
         -   [ ] **optimize for better performance**, e.g.:
@@ -448,4 +467,13 @@
 
             -   [ ] Are there other events that can change the number of visible rows but currently do not trigger an update?
 
-        -   [ ] the info text is only updated after first resize or scroll event; I need to somehow trigger the update directly after the table is initialized and presented to the user
+        -   [x] the info text is only updated after first resize or scroll event; I need to somehow trigger the update directly after the table is initialized and presented to the user;\
+            solution: async function
+
+        -   [ ] **[BUG]** Maximizing the window introduces wrong row info text
+
+            -   start with random window size, e.g. such that 20 rows are displayed
+
+            -   maximize the window: the info text still states "20 rows" although (on a large enough screen) much more rows are displayed
+
+            -   make window smaller again: now 20 rows are displayed again, but info text shows a wrong number

@@ -2,6 +2,19 @@ ui <- miniUI::miniPage(
     tags$head(tags$script(HTML(
         "
         function registerRowInfoHandler(id) {
+            async function updateWithIframeHeight() {
+                updateRowInfoText(rowInfoDiv);
+            }
+
+            const observer = new MutationObserver((mutationsList) => {
+                for (const m of mutationsList) {
+                    if (m.type === 'childList' && document.getElementById(id + '_wrapper').parentElement.querySelectorAll('iframe')) {
+                        observer.disconnect();
+                        updateWithIframeHeight();
+                    }
+                }
+            })
+
             function setCumSumRowHeights(scrollBody) {
                 const rows = document.querySelectorAll('#' + id + ' tbody tr');
                 const rowHeights = Array.from(rows, (r) => r.offsetHeight);
@@ -9,9 +22,9 @@ ui <- miniUI::miniPage(
                 cumsumHeights = rowHeights.map( (sum => value => sum += value)(0) );
             }
 
-            function updateRowInfoText(rowInfoContainer) {
+            function updateRowInfoText(rowInfoContainer, bodyHeight = scrollBody.offsetHeight) {
                 const topPosition = scrollBody.scrollTop;
-                const bodyHeight = scrollBody.clientHeight;
+                //const bodyHeight = scrollBody.clientHeight;
                 let firstRow = 0;
 
                 for (let i = 0; i < cumsumHeights.length; i++) {
@@ -29,14 +42,11 @@ ui <- miniUI::miniPage(
                         break;
                 }
 
-                // console.log('The first row: ' + (firstRow + 1) + ', the last row: ' + (lastRow + 1));
                 rowInfoContainer.innerHTML = 'Showing ' + (firstRow + 1) + ' to ' + lastRow + ' of ' + cumsumHeights.length + ' rows';
             }
 
             const scrollBody = document.querySelectorAll('#' + id + '_wrapper .dataTables_scrollBody')[0];
             const rowInfoDiv = document.querySelectorAll('#' + id + '_info')[0];
-
-            console.log(scrollBody);
 
             let cumsumHeights =  [];
             setCumSumRowHeights(scrollBody);
@@ -49,6 +59,8 @@ ui <- miniUI::miniPage(
             scrollBody.addEventListener('scroll', function() {
                 updateRowInfoText(rowInfoDiv);
             });
+
+            observer.observe(document.getElementById(id + '_wrapper').parentElement, { childList: true, subtree: true });
         }
         "
     ))),

@@ -10,7 +10,6 @@ server <- function(input, output, session) {
                        initComplete = DT::JS(HTML(
                            "
                            function(settings, object) {
-                               console.log(settings.nTable.id);
                                registerRowInfoHandler(settings.nTable.id);
                            }
                            "
