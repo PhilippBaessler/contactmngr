@@ -1,21 +1,22 @@
 ui <- miniUI::miniPage(
     tags$head(tags$script(HTML(
         "
-        function getDisplayedRows() {
-            const scrollBody = document.querySelectorAll('#contact_list .dataTables_scrollBody')[0];
-            const rows = document.querySelectorAll('#contact_list tbody tr');
-            const rowHeights = Array.from(rows, (r) => r.offsetHeight);
-            const cumsumHeights = rowHeights.map( (sum => value => sum += value)(0) );
-            console.log(cumsumHeights);
-            console.log(rowHeights);
+        function getDisplayedRows(id) { // funciton works only if shiny-id is used (i.e. the id of the div that contains the datatable)
+            console.log('the id is: ' + id);
+            console.log('the type of the id is: ' + typeof(id));
+            function setCumSumRowHeights(scrollBody) {
+                const rows = document.querySelectorAll('#' + id + ' tbody tr');
+                const rowHeights = Array.from(rows, (r) => r.offsetHeight);
 
-            scrollBody.addEventListener('scroll', function() {
+                cumsumHeights = rowHeights.map( (sum => value => sum += value)(0) );
+            }
+
+            function updateRowInfoText(rowInfoContainer) {
                 const topPosition = scrollBody.scrollTop;
                 const bodyHeight = scrollBody.clientHeight;
-                console.log('topPos: ' + topPosition + ' bdHeight: ' + bodyHeight);
                 let firstRow = 0;
 
-                for (let i = 0; i < rowHeights.length; i++) {
+                for (let i = 0; i < cumsumHeights.length; i++) {
                     if (cumsumHeights[i] >= topPosition) {
                         firstRow = i;
                         break;
@@ -24,14 +25,29 @@ ui <- miniUI::miniPage(
 
                 let lastRow = firstRow;
 
-                for (let i = firstRow; i < rowHeights.length; i++) {
-                    if (cumsumHeights[i] > bodyHeight) {
-                        lastRow = i;
+                for (let i = firstRow; i <= cumsumHeights.length; i++) {
+                    lastRow = i;
+                    if (cumsumHeights[i] - cumsumHeights[firstRow] > bodyHeight)
                         break;
-                    }
                 }
 
-                console.log('The first row: ' + (firstRow + 1) + ', the last row: ' + (lastRow + 1));
+                // console.log('The first row: ' + (firstRow + 1) + ', the last row: ' + (lastRow + 1));
+                rowInfoContainer.innerHTML = 'Showing ' + (firstRow + 1) + ' to ' + lastRow + ' of ' + cumsumHeights.length + ' rows';
+            }
+
+            const scrollBody = document.querySelectorAll('#' + id + ' .dataTables_scrollBody')[0];
+            const rowInfoDiv = document.querySelectorAll('#' + id + ' .dataTables_info')[0];
+
+            let cumsumHeights =  [];
+            setCumSumRowHeights(scrollBody);
+
+            window.addEventListener('resize', function() {
+                setCumSumRowHeights(scrollBody);
+                updateRowInfoText(rowInfoDiv);
+            })
+
+            scrollBody.addEventListener('scroll', function() {
+                updateRowInfoText(rowInfoDiv);
             });
         }
         "

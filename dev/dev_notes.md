@@ -402,13 +402,17 @@
 
         -   [ ] optimize for better performance, e.g.
 
-            -   scroll event is very chatty, when scrolling, this code doesn't need to run several times a second I guess....
+            -   [ ] scroll event is very chatty, when scrolling, this code doesn't need to run several times a second I guess....
 
-            -   always checking all row heights (or making the rowHeights array) seems quiete inefficient;
+            -   [x] always checking all row heights (or making the rowHeights array) seems quiete inefficient;
 
-            -   do profiling to identify slow parts
+            -   [ ] do profiling to identify slow parts
 
-        -   [ ] (reactiveness): this must also work if the table columns are changed, added or removed or if the body width changes, since row heights might change due to linebreaks; in any case this needs to be triggered if data changes or if window size changes, etc.
+            -   [ ] memory optimization
+
+        -   [ ] **make more stable**:\
+            this must also work if the table columns are changed, added or removed or if the body width changes\
+            (row heights might change due to linebreaks)
 
     -   Improvements
 

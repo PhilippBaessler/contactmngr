@@ -10,7 +10,8 @@ server <- function(input, output, session) {
                        initComplete = DT::JS(HTML(
                            "
                            function(settings, object) {
-                               getDisplayedRows();
+                               console.log(settings.nTable.id);
+                               getDisplayedRows(settings.nTable.id);
                            }
                            "
                        ))),
