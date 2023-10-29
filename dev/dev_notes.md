@@ -396,7 +396,7 @@
 
     -   this function can f.ex. be used with `datatable`'s `initComplete` callback
 
-    -   this is still an early version. To do:
+    -   this is still an early version. Improvements to do:
 
         -   [ ] make this independent from the datatable id (here: '#contact_list') which is currently hardcoded in the function
 
@@ -404,6 +404,16 @@
 
             -   scroll event is very chatty, when scrolling, this code doesn't need to run several times a second I guess....
 
-            -   always checking all row heights (or making the rowHeights array) seems quiete inefficient
+            -   always checking all row heights (or making the rowHeights array) seems quiete inefficient;
 
-        -   [ ] this must also work if the table columns are changed, added or removed or if the body width changes, since row heights might change due to linebreaks; in any case this needs to be triggered if data changes or if window size changes, etc.
+            -   do profiling to identify slow parts
+
+        -   [ ] (reactiveness): this must also work if the table columns are changed, added or removed or if the body width changes, since row heights might change due to linebreaks; in any case this needs to be triggered if data changes or if window size changes, etc.
+
+    -   Improvements
+
+        -   make the row heights reactive on a number of events
+
+        -   instead of a for loop that runs through the array, i create a sort of integral array, that stores the cumulative sum of the row heights. If I am looking for the first row I need to find the first index that is larger than the entry of the array. I use then the remaining elements of the array and look for the first value that is larger than the element value - the value of the first row. This element is then the first element that is not visible below the table (i.e. the row after the last visible row)
+
+        -   

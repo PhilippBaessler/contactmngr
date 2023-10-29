@@ -2,35 +2,30 @@ ui <- miniUI::miniPage(
     tags$head(tags$script(HTML(
         "
         function getDisplayedRows() {
-            scrollBody = document.querySelectorAll('#contact_list .dataTables_scrollBody')[0];
-
+            const scrollBody = document.querySelectorAll('#contact_list .dataTables_scrollBody')[0];
             const rows = document.querySelectorAll('#contact_list tbody tr');
             const rowHeights = Array.from(rows, (r) => r.offsetHeight);
-            console.log(scrollBody);
+            const cumsumHeights = rowHeights.map( (sum => value => sum += value)(0) );
+            console.log(cumsumHeights);
+            console.log(rowHeights);
 
             scrollBody.addEventListener('scroll', function() {
                 const topPosition = scrollBody.scrollTop;
                 const bodyHeight = scrollBody.clientHeight;
                 console.log('topPos: ' + topPosition + ' bdHeight: ' + bodyHeight);
                 let firstRow = 0;
-                let sumHeight = 0;
 
                 for (let i = 0; i < rowHeights.length; i++) {
-                    sumHeight += rowHeights[i];
-
-                    if (sumHeight >= topPosition) {
+                    if (cumsumHeights[i] >= topPosition) {
                         firstRow = i;
                         break;
                     }
                 }
 
                 let lastRow = firstRow;
-                sumHeight = 0;
 
                 for (let i = firstRow; i < rowHeights.length; i++) {
-                    sumHeight += rowHeights[i];
-
-                    if (sumHeight > bodyHeight) {
+                    if (cumsumHeights[i] > bodyHeight) {
                         lastRow = i;
                         break;
                     }
@@ -39,18 +34,6 @@ ui <- miniUI::miniPage(
                 console.log('The first row: ' + (firstRow + 1) + ', the last row: ' + (lastRow + 1));
             });
         }
-
-        function getRowHeights(tableId) {
-            const rows = document.querySelectorAll('#' + tableId + ' tbody tr');
-            const rowHeights = Array.from(rows, (r) => r.offsetHeight);
-            console.log(rowHeights);
-        }
-
-            //const dataTableWrapper  = dataTable.getElementsByClassName('dataTables_wrapper')[0];
-            //console.log(dataTableWrapper);
-            //const dataTableId = dataTableWrapper.id.replace('_wrapper', '');
-            //console.log(dataTableId);
-            //$('#' + dataTableId).DataTable().scroller.measure();
         "
     ))),
     miniUI::gadgetTitleBar(
