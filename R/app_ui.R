@@ -1,9 +1,7 @@
 ui <- miniUI::miniPage(
     tags$head(tags$script(HTML(
         "
-        function getDisplayedRows(id) { // funciton works only if shiny-id is used (i.e. the id of the div that contains the datatable)
-            console.log('the id is: ' + id);
-            console.log('the type of the id is: ' + typeof(id));
+        function registerRowInfoHandler(id) {
             function setCumSumRowHeights(scrollBody) {
                 const rows = document.querySelectorAll('#' + id + ' tbody tr');
                 const rowHeights = Array.from(rows, (r) => r.offsetHeight);
@@ -35,8 +33,10 @@ ui <- miniUI::miniPage(
                 rowInfoContainer.innerHTML = 'Showing ' + (firstRow + 1) + ' to ' + lastRow + ' of ' + cumsumHeights.length + ' rows';
             }
 
-            const scrollBody = document.querySelectorAll('#' + id + ' .dataTables_scrollBody')[0];
-            const rowInfoDiv = document.querySelectorAll('#' + id + ' .dataTables_info')[0];
+            const scrollBody = document.querySelectorAll('#' + id + '_wrapper .dataTables_scrollBody')[0];
+            const rowInfoDiv = document.querySelectorAll('#' + id + '_info')[0];
+
+            console.log(scrollBody);
 
             let cumsumHeights =  [];
             setCumSumRowHeights(scrollBody);

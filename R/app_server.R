@@ -11,7 +11,7 @@ server <- function(input, output, session) {
                            "
                            function(settings, object) {
                                console.log(settings.nTable.id);
-                               getDisplayedRows(settings.nTable.id);
+                               registerRowInfoHandler(settings.nTable.id);
                            }
                            "
                        ))),

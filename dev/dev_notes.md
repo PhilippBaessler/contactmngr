@@ -349,75 +349,103 @@
 
     **Custom info text for currently displayed rows:**
 
-    -   javascript function to determine the currently displayed rows
-
-        ``` javascript
-        function getDisplayedRows() {
-                    scrollBody = document.querySelectorAll('#contact_list .dataTables_scrollBody')[0];
-
-                    const rows = document.querySelectorAll('#contact_list tbody tr');
-                    const rowHeights = Array.from(rows, (r) => r.offsetHeight);
-                    console.log(scrollBody);
-
-                    scrollBody.addEventListener('scroll', function() {
-                        const topPosition = scrollBody.scrollTop;
-                        const bodyHeight = scrollBody.clientHeight;
-                        console.log('topPos: ' + topPosition + ' bdHeight: ' + bodyHeight);
-                        let firstRow = 0;
-                        let sumHeight = 0;
-
-                        for (let i = 0; i < rowHeights.length; i++) {
-                            sumHeight += rowHeights[i];
-
-                            if (sumHeight >= topPosition) {
-                                firstRow = i;
-                                break;
-                            }
-                        }
-
-                        let lastRow = firstRow;
-                        sumHeight = 0;
-
-                        for (let i = firstRow; i < rowHeights.length; i++) {
-                            sumHeight += rowHeights[i];
-
-                            if (sumHeight > bodyHeight) {
-                                lastRow = i;
-                                break;
-                            }
-                        }
-
-                        console.log('The first row: ' + (firstRow + 1) + ', the last row: ' + (lastRow + 1));
-                    });
+    ``` javascript
+    function registerRowInfoHandler(id) {
+        function setCumSumRowHeights(scrollBody) {
+            const rows = document.querySelectorAll('#' + id + ' tbody tr');
+            const rowHeights = Array.from(rows, (r) => r.offsetHeight);
+            
+            cumsumHeights = rowHeights.map( (sum => value => sum += value)(0) );
+        }
+        
+        function updateRowInfoText(rowInfoContainer) {
+            const topPosition = scrollBody.scrollTop;
+            const bodyHeight = scrollBody.clientHeight;
+            let firstRow = 0;
+            
+            for (let i = 0; i < cumsumHeights.length; i++) {
+                if (cumsumHeights[i] >= topPosition) {
+                    firstRow = i;
+                    break;
                 }
+            }
+            
+            let lastRow = firstRow;
+            
+            for (let i = firstRow; i <= cumsumHeights.length; i++) {
+                lastRow = i;
+                if (cumsumHeights[i] - cumsumHeights[firstRow] > bodyHeight)
+                break;
+            }
+            
+            rowInfoContainer.innerHTML = 'Showing ' + (firstRow + 1) + ' to ' + lastRow + ' of ' + cumsumHeights.length + ' rows';
+        }
+        
+        const scrollBody = document.querySelectorAll('#' + id + '_wrapper .dataTables_scrollBody')[0];
+        const rowInfoDiv = document.querySelectorAll('#' + id + '_info')[0];
+        
+        console.log(scrollBody);
+        
+        let cumsumHeights =  [];
+        setCumSumRowHeights(scrollBody);
+        
+        window.addEventListener('resize', function() {
+            setCumSumRowHeights(scrollBody);
+            updateRowInfoText(rowInfoDiv);
+        })
+        
+        scrollBody.addEventListener('scroll', function() {
+            updateRowInfoText(rowInfoDiv);
+        });
+    }
+    ```
+
+    -   This function registers some event listeners that update the displayed row info below the `datatable` to show the range of currently visible rows of the table. The function uses the `cumsumHeights` variable that contains the cumulative sum of the heights of the rows of the table. In the current implementation, this is updated if the window is resized, as changed width of the window can result in change of number of linebreaks and hence might change the heights of some rows. There may be other events that should trigger the update.\
+        The function `updateRowInfoText()` updates the info text beneath the `datatable` and is triggered by scrolling the `datatable` or by resizing the window.
+
+    -   this function is then used with `datatable`'s `initComplete` callback in the shiny server function:
+
+        ``` R
+        output$contact_list <- DT::renderDT(
+                my_data_frame,
+                options = list(scrollResize = TRUE,
+                               paging = FALSE,
+                               scrollY = "100%",
+                               initComplete = DT::JS(HTML(
+                                   "
+                                   function(settings, object) {
+                                       console.log(settings.nTable.id);
+                                       registerRowInfoHandler(settings.nTable.id);
+                                   }
+                                   "
+                               ))),
+                extensions = c("Scroller"),
+                plugins = c("scrollResize")
+            )
         ```
 
-        This functions first creates a lookup array to store all row heights, then registers an eventlistener that executes the determination of the currently displayed rows given the previously stored row heights. This uses the row heights at the time of creation of the listener, hence resizing the window, the table or adding/removing columns will result in wrong calculation. The array creation can be done in the event listener, but this might slow down the calculation.
+    -   Rather than deriving the `id` from the `datatable settings` object in the callback, it could also be defined by shiny. In that case, the `registerRowInfoHandler()` function must be adjusted as follows:
 
-    -   this function can f.ex. be used with `datatable`'s `initComplete` callback
+        ``` javascript
+        const scrollBody = document.querySelectorAll('#' + id + '.dataTables_scrollBody')[0]; 
 
-    -   this is still an early version. Improvements to do:
+        const rowInfoDiv = document.querySelectorAll('#' + id + ' .dataTables_info')[0];
+        ```
 
-        -   [ ] make this independent from the datatable id (here: '#contact_list') which is currently hardcoded in the function
+    -   Improvements:
 
-        -   [ ] optimize for better performance, e.g.
+        -   [ ] **optimize for better performance**, e.g.:
 
-            -   [ ] scroll event is very chatty, when scrolling, this code doesn't need to run several times a second I guess....
+            -   [ ] scroll event is very chatty, when scrolling: reduce executions when scrolling?
 
-            -   [x] always checking all row heights (or making the rowHeights array) seems quiete inefficient;
-
-            -   [ ] do profiling to identify slow parts
+            -   [ ] profiling to identify slow parts
 
             -   [ ] memory optimization
 
-        -   [ ] **make more stable**:\
-            this must also work if the table columns are changed, added or removed or if the body width changes\
-            (row heights might change due to linebreaks)
+        -   [ ] **make more robust**:
 
-    -   Improvements
+            -   [ ] I assume a change of data or the `datatable` object on the shiny side update this automatically. Is this really the case?
 
-        -   make the row heights reactive on a number of events
+            -   [ ] Are there other events that can change the number of visible rows but currently do not trigger an update?
 
-        -   instead of a for loop that runs through the array, i create a sort of integral array, that stores the cumulative sum of the row heights. If I am looking for the first row I need to find the first index that is larger than the entry of the array. I use then the remaining elements of the array and look for the first value that is larger than the element value - the value of the first row. This element is then the first element that is not visible below the table (i.e. the row after the last visible row)
-
-        -   
+        -   [ ] the info text is only updated after first resize or scroll event; I need to somehow trigger the update directly after the table is initialized and presented to the user
